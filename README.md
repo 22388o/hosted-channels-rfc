@@ -142,3 +142,35 @@ While verifying a signature a drift of 1 blockday is permitted (for example, it 
 #### Rationale
 
 Either party may send a hosted channel into `SUSPENDED` state by sending out an `Error` message. Whereas normal channel gets force-closed a hosted one gets `SUSPENDED`. Normal operation may be resumed once that happens by Host sending a `state_override` message to Client which would erase a previous problematic state and set a new agreed upon Client's balance. Client must manually accept this message which would send a `state_override` in return. Client's wallet UI/UX must be especially explicit about what is going on in this situation.
+
+### Resolving edge cases
+
+When establishing a hosted channel Client and Host agree that:
+
+- The latest cross-signed state reflects Host's obligation to Client. Latest is defined as having the highest `client_update_counter`/`host_update_counter` combination since those values are only allowed to rise while `state_signature` messages are exchanged.
+
+- Host's obligation only lasts for `liability_deadline_blockdays` specified in `init_hosted_channel` message. For example: if last cross-signed `state_signature` messages had blockday set to 1000 and `liability_deadline_blockdays` is set to 2000, then Host may not maintain a channel after blockday 3000 if it was not used all this time.
+
+#### Host misses a channel
+
+__Issue__: Client has a hosted channel with cross-signed state on their device but in response to `invoke_hosted_channel` Host replies with `last_cross_signed_state` message where `client_update_counter`/`host_update_counter` are below Client's values or with `init_hosted_channel` (offering to create a new channel) while channel has not expired yet according to `liability_deadline_blockdays` parameter.
+
+__Solution__: Client puts channel to `SUSPENDED` state by sending an `Error`, then proivdes a latest cross-signed state to Host and/or third pary auditor. If Host can not provide a `last_cross_signed_state` with identical or higher `client_update_counter`/`host_update_counter` values then Host's debt is proven.
+
+#### Client misses a channel
+
+__Issue__: Client has fallen behind (by failing to save the last cross-signed state to disk), removed an app or completely lost their device and backups. Client still has a wallet seed (for example, in a form of mnemonic code) and rememebers who the Host is so can initiate a connection.
+
+__Solution__: Client connects and sends `invoke_hosted_channel`, gets `last_cross_signed_state` in response, verifies both signatures and simply updates its channel state according to values from Host's message. It is possible for Host to lie to Client by providing an earlier and more favorable cross-signed state, but generally Host can not know that this exact Client has lost its state so Host would have to constantly probe this possibility by sending an old states to arbitrary Clients thus getting its channels `SUSPENDED` all the time.
+
+#### Client stops responding in a middle of receiving
+
+__Issue__: Malicious or offline Client may accept `update_add_htlc` and following `state_signature` from Host without ever replying. In this situation Host has a limited time to either fulfill a payment downstream (which would require obtaining a preimage from Client) or fail it, otherwise Host risks downstream channel getting force-closed by remote peer.
+
+__Solution__: Similar to how this is handled in normal channels, right before CLTV timelock is about to expire Host must put a hosted channel into `SUSPENDED` mode and fail a payment downstream. Hosted channel can be put back to operational mode at a later time by exchaning `state_override` messages where client balance is adjusted such that failed in-flight HTLC is removed.
+
+#### Host stops responding in a middle of Client receiving
+
+__Issue__: When Client receives a payment through hosted channel it sends `update_fulfill_htlc` with a preimage in response to Host's `update_add_htlc`. Host can use that preimage to propagate it back to payer and get the funds without sending updated `state_signature` to Client. Host would thus get the funds into its normal channel while Client won't have a last cross signed state reflecting that.
+
+__Solution__: This situation will appear as highly unusual to Client: incoming payment will be seen as pending in Client's wallet and payer will be claiming that payment has been sent successfully while being able to provide a preimage: this would prove that Host has in fact obtained a preimage from Client and used it to increase its balance. Client would have the latest cross-signed state which fixates an incoming HTLC from Host along with blockday and CLTV expiry (which must be set to at least `432` blocks accoring to `channel_update` requirements above). Large CLTV expiry would give Client enough time to proivde that cross-signed state to Host and/or third pary auditor and thus prove Host's debt (since after `432` blocks Host may put a channel into `SUSPENDED` mode and claim that Client was not responding).
