@@ -179,4 +179,4 @@ __Solution__: This situation will appear as highly unusual to Client: incoming p
 
 __Issue__: After doing that Client may show up with last cross-signed state claiming that funds are still in a hosted channel.
 
-__Solution__: Host should wait at least 1 blockday until broadcasting an on-chain refunding transaction, in that case it will be included in a block whose blockday is higher than last cross-signed state blockday, thus proving that Host has no debt anymore.
+__Solution__: Host should first put channel into `SUSPENDED` state and then wait at least 1 blockday until broadcasting an on-chain refunding transaction, in that case it will be included in a block whose blockday is higher than last cross-signed state blockday, thus proving that Host has no debt anymore.
