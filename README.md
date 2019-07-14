@@ -94,9 +94,9 @@ This message is sent by Host to Client in reply to `invoke_hosted_channel` if no
 
 This message is sent by Host to Client in reply to `invoke_hosted_channel` if a hosted channel already exists for a given Client.
 
-Client must make sure that both `client_node_signature` and `host_node_signature` match and that `block_day`/`client_update_counter`/`host_update_counter` values are not lower than the ones Client currently has.
+Client must make sure that `last_client_state_update` and `last_host_state_update` signatures are valid, and that `block_day`/`client_update_counter`/`host_update_counter` are identical in both inner messages, and that actual values are not lower than the ones Client currently has locally.
 
-If both signatures match but `block_day`/`client_update_counter`/`host_update_counter` values are above the Client's values then Client updates it's internal channel state accoring to values from `last_cross_signed_state` message (this may happen if client has fallen behind or lost channel data).
+If both signatures are valid but `block_day`/`client_update_counter`/`host_update_counter` values are above the Client's values then Client updates it's internal channel state accoring to values from `last_cross_signed_state` message (this may happen if client has fallen behind or lost channel data).
 
 Node signatures sign `sha256(refund_scriptpubkey + minimal_onchain_refund_amount_satoshis + liability_deadline_blockdays + updated_client_balance_satoshis + block_day + client_update_counter + host_update_counter + client_outgoing_htlcs + host_outgoing_htlcs)` with respected node private keys.
 
