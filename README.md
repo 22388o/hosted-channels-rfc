@@ -86,9 +86,9 @@ This message is sent by Host to Client in reply to `invoke_hosted_channel` if no
 2. data:
   * [`u16`:`len`]
   * [`len*byte`:`last_refund_scriptpubkey`]
-  * [`init_hosted_channel`:`init_hosted_channel`]
-  * [`state_update`:`last_client_state_update`]
-  * [`state_update`:`last_host_state_update`]
+  * [[`init_hosted_channel`](#the-init_hosted_channel-message):`init_hosted_channel`]
+  * [[`state_update`](#the-state_update-message):`last_client_state_update`]
+  * [[`tate_update`](#the-state_update-message):`last_host_state_update`]
 
 #### Rationale
 
@@ -104,7 +104,7 @@ Node signatures sign `sha256(refund_scriptpubkey + minimal_onchain_refund_amount
 
 1. type: 65532 (`state_update`)
 2. data:
-  * [`state_override`:`state_override`]
+  * [[`state_override`](#the-state_override-message):`state_override`]
   * [`u16`:`num_client_htlcs`]
   * [`num_client_htlcs*44`:`client_outgoing_htlcs`]
   * [`u16`:`num_host_htlcs`]
