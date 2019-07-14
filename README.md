@@ -88,7 +88,7 @@ This message is sent by Host to Client in reply to `invoke_hosted_channel` if no
   * [`len*byte`:`last_refund_scriptpubkey`]
   * [[`init_hosted_channel`](#the-init_hosted_channel-message):`init_hosted_channel`]
   * [[`state_update`](#the-state_update-message):`last_client_state_update`]
-  * [[`tate_update`](#the-state_update-message):`last_host_state_update`]
+  * [[`state_update`](#the-state_update-message):`last_host_state_update`]
 
 #### Rationale
 
