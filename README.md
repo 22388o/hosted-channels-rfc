@@ -94,7 +94,7 @@ This message is sent by Host to Client in reply to `invoke_hosted_channel` if no
 
 This message is sent by Host to Client in reply to `invoke_hosted_channel` if a hosted channel already exists for a given Client.
 
-Client must make sure that `last_client_state_update` and `last_host_state_update` signatures are valid, and that `block_day`/`client_update_counter`/`host_update_counter` are identical in both inner messages, and that actual values are not lower than the ones Client currently has locally.
+Client must make sure that `last_client_state_update` and `last_host_state_update` signatures are valid, and that `updated_client_balance_satoshis`/`block_day`/`client_update_counter`/`host_update_counter` are identical in both inner messages, and that actual values are not lower than the ones Client currently has locally.
 
 If both signatures are valid but `block_day`/`client_update_counter`/`host_update_counter` values are above the Client's values then Client updates it's internal channel state accoring to values from `last_cross_signed_state` message (this may happen if client has fallen behind or lost channel data).
 
