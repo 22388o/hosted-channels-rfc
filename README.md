@@ -29,16 +29,16 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
         +-------+                                           +-------+
         |       |--(1)------ invoke_hosted_channel -------->|       |
         |       |<-(2)------ init_hosted_channel -----------|       |
-        |       |--(2.1)---- state_signature -------------->|       |
-        |       |<-(2.2)---- state_signature ---------------|       |
+        |       |--(2.1)---- state_update ----------------->|       |
+        |       |<-(2.2)---- state_update ------------------|       |
         |       |                  or                       |       |
         |   A   |<-(2)------ last_cross_signed_state -------|   B   |
         |       |--(3)------ update_add_htlc -------------->|       |
-        |       |--(4)------ state_signature -------------->|       |
-        |       |<-(5)------ state_signature ---------------|       |
+        |       |--(4)------ state_update ----------------->|       |
+        |       |<-(5)------ state_update ------------------|       |
         |       |<-(6)------ update_fulfill_htlc -----------|       |
-        |       |<-(7)------ state_signature ---------------|       |
-        |       |--(8)------ state_signature -------------->|       |
+        |       |<-(7)------ state_update ------------------|       |
+        |       |--(8)------ state_update ----------------->|       |
         +-------+                                           +-------+
 
         - where node A is Client and node B is Host
@@ -47,9 +47,9 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 
 1. type: 65535 (`invoke_hosted_channel`)
 2. data:
-  * [`32`:`chain_hash`]
-  * [`2`:`len`]
-  * [`len`:`refund_scriptpubkey`]
+  * [`chain_hash`:`chain_hash`]
+  * [`u16`:`len`]
+  * [`len*byte`:`refund_scriptpubkey`]
 
 #### Requirements
 
@@ -63,19 +63,19 @@ This message is sent by Client on each reconnection, it prompts Host to reveal l
 
 1. type: 65534 (`init_hosted_channel`)
 2. data:
-  * [`8`:`max_htlc_value_in_flight_msat`]
-  * [`8`:`htlc_minimum_msat`]
-  * [`2`:`max_accepted_htlcs`]
-  * [`8`:`channel_capacity_satoshis`]
-  * [`2`:`liability_deadline_blockdays`]
-  * [`8`:`minimal_onchain_refund_amount_satoshis`]
-  * [`8`:`initial_client_balance_satoshis`]
+  * [`u64`:`max_htlc_value_in_flight_msat`]
+  * [`u64`:`htlc_minimum_msat`]
+  * [`u16`:`max_accepted_htlcs`]
+  * [`u64`:`channel_capacity_satoshis`]
+  * [`u16`:`liability_deadline_blockdays`]
+  * [`u64`:`minimal_onchain_refund_amount_satoshis`]
+  * [`u64`:`initial_client_balance_satoshis`]
 
 #### Rationale
 
 This message is sent by Host to Client in reply to `invoke_hosted_channel` if no hosted channel exists for a given Client yet. 
 
-`liability_deadline_blockdays` specifies a period in blockdays after last `state_signature` exchange during which the Host is going to maintain a channel. That is, if there is no activity during `liability_deadline_blockdays` period then Host owes nothing to Client anymore.
+`liability_deadline_blockdays` specifies a period in blockdays after last `state_update` exchange during which the Host is going to maintain a channel. That is, if there is no activity during `liability_deadline_blockdays` period then Host owes nothing to Client anymore.
 
 `minimal_onchain_refund_amount_satoshis` specifies a minimal balance that Client should have in a hosted channel for Host to refund it on-chain using Client's `refund_scriptpubkey`.
 
@@ -84,15 +84,11 @@ This message is sent by Host to Client in reply to `invoke_hosted_channel` if no
 
 1. type: 65533 (`last_cross_signed_state`)
 2. data:
-  * [`2`:`len`]
-  * [`len`:`last_refund_scriptpubkey`]
-  * [`44`:`init_hosted_channel`]
-  * [`8`:`last_client_balance_satoshis`]
-  * [`4`:`block_day`]
-  * [`4`:`client_update_counter`]
-  * [`4`:`host_update_counter`]
-  * [`64`:`client_node_signature`]
-  * [`64`:`host_node_signature`]
+  * [`u16`:`len`]
+  * [`len*byte`:`last_refund_scriptpubkey`]
+  * [`init_hosted_channel`:`init_hosted_channel`]
+  * [`state_update`:`last_client_state_update`]
+  * [`state_update`:`last_host_state_update`]
 
 #### Rationale
 
@@ -102,42 +98,38 @@ Client must make sure that both `client_node_signature` and `host_node_signature
 
 If both signatures match but `block_day`/`client_update_counter`/`host_update_counter` values are above the Client's values then Client updates it's internal channel state accoring to values from `last_cross_signed_state` message (this may happen if client has fallen behind or lost channel data).
 
-Node signatures sign `sha256(refund_scriptpubkey + minimal_onchain_refund_amount_satoshis + liability_deadline_blockdays + client_balance + block_day + client_update_counter + host_update_counter)` with respected node private keys.
+Node signatures sign `sha256(refund_scriptpubkey + minimal_onchain_refund_amount_satoshis + liability_deadline_blockdays + updated_client_balance_satoshis + block_day + client_update_counter + host_update_counter + client_outgoing_htlcs + host_outgoing_htlcs)` with respected node private keys.
 
-### The `state_signature` Message
+### The `state_update` Message
 
-1. type: 65532 (`state_signature`)
+1. type: 65532 (`state_update`)
 2. data:
-  * [`8`:`updated_client_balance_satoshis`]
-  * [`4`:`block_day`]
-  * [`4`:`client_update_counter`]
-  * [`4`:`host_update_counter`]
-  * [`2`:`num_client_htlcs`]
+  * [`state_override`:`state_override`]
+  * [`u16`:`num_client_htlcs`]
   * [`num_client_htlcs*44`:`client_outgoing_htlcs`]
-  * [`2`:`num_host_htlcs`]
+  * [`u16`:`num_host_htlcs`]
   * [`num_client_htlcs*44`:`host_outgoing_htlcs`]
-  * [`64`:`node_signature`]
 
 #### Rationale
 
-Host and Client exchange `state_signature` messages after sending `update_add_htlc`/
+Host and Client exchange `state_update` messages after sending `update_add_htlc`/
 `update_fail_htlc`/`update_fail_malformed_htlc`/`update_fulfill_htlc` messages, a state is considered cross-signed once both Host and Client valid signatures are collected for the same channel state.
 
 `client_outgoing_htlcs` and `host_outgoing_htlcs` is a list of current in-flight HTLCs, each record is a tuple of `(payment_hash, amount_msat, cltv_expiry)` sorted according to rules defined at https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#transaction-input-and-output-ordering.
 
-When sending `state_signature` a peer must increment its respected `update_counter`, when receiving a remote `state_signature` it must increment a remote `update_counter`. Thus `state_signature` is a CvRDT with defined merge operation which is guaranteed to eventually converge. Client and Host must keep exchanging `state_signature` messages until convergence is achieved.
+When sending `state_update` a peer must increment its respected `update_counter`, when receiving a remote `state_update` it must increment a remote `update_counter`. Thus `state_update` is a CvRDT with defined merge operation which is guaranteed to eventually converge. Client and Host must keep exchanging `state_update` messages until convergence is achieved.
 
-While verifying a signature a drift of 1 blockday is permitted (for example, it is OK to receive a `state_signature` with `block_day` set to 101 while local `block_day` is still 100).
+While verifying a signature a drift of 1 blockday is permitted (for example, it is OK to receive a `state_update` with `block_day` set to 101 while local `block_day` is still 100).
 
 ### The `state_override` Message
 
 1. type: 65531 (`state_override`)
 2. data:
-  * [`8`:`updated_client_balance_satoshis`]
-  * [`4`:`block_day`]
-  * [`4`:`client_update_counter`]
-  * [`4`:`host_update_counter`]
-  * [`64`:`node_signature`]
+  * [`u64`:`updated_client_balance_satoshis`]
+  * [`u32`:`block_day`]
+  * [`u32`:`client_update_counter`]
+  * [`u32`:`host_update_counter`]
+  * [`signature`:`node_signature`]
 
 #### Rationale
 
@@ -147,9 +139,9 @@ Either party may send a hosted channel into `SUSPENDED` state by sending out an 
 
 When establishing a hosted channel Client and Host agree that:
 
-- The latest cross-signed state reflects Host's obligation to Client. Latest is defined as having the highest `client_update_counter`/`host_update_counter` combination since those values are only allowed to rise while `state_signature` messages are exchanged.
+- The latest cross-signed state reflects Host's obligation to Client. Latest is defined as having the highest `client_update_counter`/`host_update_counter` combination since those values are only allowed to rise while `state_update` messages are exchanged.
 
-- Host's obligation only lasts for `liability_deadline_blockdays` specified in `init_hosted_channel` message. For example: if last cross-signed `state_signature` messages had blockday set to 1000 and `liability_deadline_blockdays` is set to 2000, then Host may not maintain a channel after blockday 3000 if it was not used all this time.
+- Host's obligation only lasts for `liability_deadline_blockdays` specified in `init_hosted_channel` message. For example: if last cross-signed `state_update` messages had blockday set to 1000 and `liability_deadline_blockdays` is set to 2000, then Host may not maintain a channel after blockday 3000 if it was not used all this time.
 
 #### Host misses a channel
 
@@ -165,15 +157,15 @@ __Solution__: Client connects and sends `invoke_hosted_channel`, gets `last_cros
 
 #### Client stops responding in a middle of receiving
 
-__Issue__: Malicious or offline Client may accept `update_add_htlc` and following `state_signature` from Host without ever replying. In this situation Host has a limited time to either fulfill a payment downstream (which would require obtaining a preimage from Client) or fail it, otherwise Host risks downstream channel getting force-closed by remote peer.
+__Issue__: Malicious or offline Client may accept `update_add_htlc` and following `state_update` from Host without ever replying. In this situation Host has a limited time to either fulfill a payment downstream (which would require obtaining a preimage from Client) or fail it, otherwise Host risks downstream channel getting force-closed by remote peer.
 
 __Solution__: Similar to how this is handled in normal channels, right before CLTV timelock is about to expire Host must put a hosted channel into `SUSPENDED` mode and fail a payment downstream. Hosted channel can be put back to operational mode at a later time by exchaning `state_override` messages where client balance is adjusted such that failed in-flight HTLC is removed.
 
 #### Host stops responding in a middle of Client receiving
 
-__Issue__: When Client receives a payment through hosted channel it sends `update_fulfill_htlc` with a preimage in response to Host's `update_add_htlc`. Host can use that preimage to propagate it back to payer and get the funds without sending updated `state_signature` to Client. Host would thus get the funds into its normal channel while Client won't have a last cross-signed state reflecting that.
+__Issue__: When Client receives a payment through hosted channel it sends `update_fulfill_htlc` with a preimage in response to Host's `update_add_htlc`. Host can use that preimage to propagate it back to payer and get the funds without sending updated `state_update` to Client. Host would thus get the funds into its normal channel while Client won't have a last cross-signed state reflecting that.
 
-__Solution__: This situation will appear as highly unusual to Client: incoming payment will be seen as pending in Client's wallet and payer will be claiming that payment has been sent successfully while being able to provide a preimage: this would prove that Host has in fact obtained a preimage from Client and used it to increase its balance. Client would have the latest cross-signed state which fixates an incoming HTLC from Host along with CLTV expiry (which must be set to at least `432` blocks accoring to `channel_update` requirements above). Large CLTV expiry would give Client enough time to provide that cross-signed state along with payment preimage to Host and/or third pary auditor and thus prove Host's debt. Client must make this claim before CLTV is expired since after `432` blocks Host may put a channel into `SUSPENDED` mode and claim that Client was not responding. To further emphasize a critical nature of this requirement a Client's wallet may specifically distinguish those pending incoming payments for which `update_fulfill_htlc` has been sent but no `state_signature` received yet).
+__Solution__: This situation will appear as highly unusual to Client: incoming payment will be seen as pending in Client's wallet and payer will be claiming that payment has been sent successfully while being able to provide a preimage: this would prove that Host has in fact obtained a preimage from Client and used it to increase its balance. Client would have the latest cross-signed state which fixates an incoming HTLC from Host along with CLTV expiry (which must be set to at least `432` blocks accoring to `channel_update` requirements above). Large CLTV expiry would give Client enough time to provide that cross-signed state along with payment preimage to Host and/or third pary auditor and thus prove Host's debt. Client must make this claim before CLTV is expired since after `432` blocks Host may put a channel into `SUSPENDED` mode and claim that Client was not responding. To further emphasize a critical nature of this requirement a Client's wallet may specifically distinguish those pending incoming payments for which `update_fulfill_htlc` has been sent but no `state_update` received yet).
 
 #### Host decides to refund a channel on-chain using Client's `refund_scriptpubkey`
 
