@@ -67,6 +67,7 @@ This message is sent by Client on each reconnection, it prompts Host to reveal l
   * [`u64`:`htlc_minimum_msat`]
   * [`u16`:`max_accepted_htlcs`]
   * [`u64`:`channel_capacity_satoshis`]
+  * [`u64`:`initial_client_balance`]
   * [`u16`:`liability_deadline_blockdays`]
   * [`u64`:`minimal_onchain_refund_amount_satoshis`]
   * [`u64`:`initial_client_balance_satoshis`]
