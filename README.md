@@ -67,7 +67,6 @@ This message is sent by Client on each reconnection, it prompts Host to reveal l
   * [`u64`:`htlc_minimum_msat`]
   * [`u16`:`max_accepted_htlcs`]
   * [`u64`:`channel_capacity_satoshis`]
-  * [`u64`:`initial_client_balance`]
   * [`u16`:`liability_deadline_blockdays`]
   * [`u64`:`minimal_onchain_refund_amount_satoshis`]
   * [`u64`:`initial_client_balance_satoshis`]
@@ -99,7 +98,7 @@ Client must make sure that `last_client_state_update` and `last_host_state_updat
 
 If both signatures are valid but `block_day`/`client_update_counter`/`host_update_counter` values are above the Client's values then Client updates it's internal channel state accoring to values from `last_cross_signed_state` message (this may happen if client has fallen behind or lost channel data).
 
-Node signatures sign `sha256(refund_scriptpubkey + minimal_onchain_refund_amount_satoshis + liability_deadline_blockdays + updated_client_balance_satoshis + block_day + client_update_counter + host_update_counter + client_outgoing_htlcs + host_outgoing_htlcs)` with respected node private keys.
+Node signatures sign `sha256(refund_scriptpubkey + liability_deadline_blockdays + minimal_onchain_refund_amount_satoshis + channel_capacity_satoshis + initial_client_balance_satoshis + updated_client_balance_satoshis + block_day + client_update_counter + host_update_counter + client_outgoing_htlcs + host_outgoing_htlcs)` with respected node private keys.
 
 ### The `state_update` Message
 
