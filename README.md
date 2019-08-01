@@ -105,21 +105,19 @@ Node signatures sign `sha256(refund_scriptpubkey + liability_deadline_blockdays 
 1. type: 65532 (`state_update`)
 2. data:
   * [[`state_override`](#the-state_override-message):`state_override`]
-  * [`u16`:`num_client_htlcs`]
-  * [`num_client_htlcs*44`:`client_outgoing_htlcs`]
-  * [`u16`:`num_host_htlcs`]
-  * [`num_client_htlcs*44`:`host_outgoing_htlcs`]
+  * [`u16`:`num_in_flight_htlcs`]
+  * [`num_client_htlcs*44`:`in_flight_htlcs`]
 
 #### Rationale
 
 Host and Client exchange `state_update` messages after sending `update_add_htlc`/
 `update_fail_htlc`/`update_fail_malformed_htlc`/`update_fulfill_htlc` messages, a state is considered cross-signed once both Host and Client valid signatures are collected for the same channel state.
 
-`client_outgoing_htlcs` and `host_outgoing_htlcs` is a list of current in-flight HTLCs, each record is a tuple of `(htlc_id, amount_msat, payment_hash, cltv_expiry)` sorted according to rules defined at https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#transaction-input-and-output-ordering.
+`client_outgoing_htlcs` and `host_outgoing_htlcs` is a list of current in-flight HTLCs, each record is a tuple of `(from_host, htlc_id, amount_msat, payment_hash, cltv_expiry)` sorted according to rules defined at https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#transaction-input-and-output-ordering.
 
 When sending `state_update` a peer must increment its respected `update_counter`, when receiving a remote `state_update` it must increment a remote `update_counter`. Thus `state_update` is a CvRDT with defined merge operation which is guaranteed to eventually converge. Client and Host must keep exchanging `state_update` messages until convergence is achieved.
 
-While verifying a signature a drift of 1 blockday is permitted (for example, it is OK to receive a `state_update` with `block_day` set to 101 while local `block_day` is still 100).
+While verifying a signature a drift of 1 blockday is permitted i.e. `abs(ourBlockDay - theirBlockDate) <= 1`.
 
 ### The `state_override` Message
 
