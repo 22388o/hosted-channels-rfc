@@ -87,9 +87,9 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
   * [`u32`:`local_updates`]
   * [`u32`:`remote_updates`]
   * [`u16`:`num_incoming_htlcs`]
-  * [`num_incoming_htlcs*[update_add_htlc](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#adding-an-htlc-update_add_htlc)`:`incoming_htlcs`]
+  * [`num_incoming_htlcs`*[`update_add_htlc`](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#adding-an-htlc-update_add_htlc):`incoming_htlcs`]
   * [`u16`:`num_outgoing_htlcs`]
-  * [`num_outgoing_htlcs*[update_add_htlc](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#adding-an-htlc-update_add_htlc)`:`outgoing_htlcs`]
+  * [`num_outgoing_htlcs`*[`update_add_htlc`](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#adding-an-htlc-update_add_htlc):`outgoing_htlcs`]
   * [`signature`:`remote_sig_of_local`]
   * [`signature`:`local_sig_of_remote`]
 
