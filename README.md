@@ -45,11 +45,11 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
   * [`len*byte`:`refund_scriptpubkey`]
   * [`u16`:`len`]
   * [`len*byte`:`secret`]
+  
+#### Rationale
 
 * By sending this message Client prompts Host to reveal last cross signed channel state or offer a new hosted channel if none exists for a given Client yet.
-
 * `refund_scriptpubkey` is similar to `scriptpubkey` in [02-peer-protocol#closing-initiation-shutdown](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#closing-initiation-shutdown) and must be provided by Client for a case when Host would want to stop a hosted channel and refund the rest of the balance while Client is offline.
-
 * `secret` is an optional data which can be used by Host to tweak channel parameters (non-zero initial Client balance, larger capacity, only allow Clients with secrets etc).
 
 ### The `init_hosted_channel` Message
@@ -64,10 +64,10 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
   * [`u64`:`minimal_onchain_refund_amount_satoshis`]
   * [`u64`:`initial_client_balance_msat`]
 
+#### Rationale
+
 * This message is sent by Host in reply to `invoke_hosted_channel` if no hosted channel exists for a given Client yet. 
-
 * `liability_deadline_blockdays` specifies a period in blockdays after last `state_update` exchange during which the Host is going to maintain a channel. That is, if there are no payments during `liability_deadline_blockdays` period then Host owes nothing to Client anymore.
-
 * `minimal_onchain_refund_amount_satoshis` specifies a minimal balance that Client must have in a hosted channel for a Host to consider refunding it on-chain using Client's `refund_scriptpubkey`.
 
 ### The `last_cross_signed_state` Message
@@ -89,14 +89,13 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
   * [`signature`:`remote_sig_of_local`]
   * [`signature`:`local_sig_of_remote`]
 
+#### Rationale
+
 * This message is sent by Host in reply to `invoke_hosted_channel` if it already exists for a given Client, once sent Host expects a similar `last_cross_signed_state` message from Client.
-
 * Both parties must make sure that `remote_sig_of_local` and `local_sig_of_remote` signatures are valid, and that inverted `local_updates`/`remote_updates` numbers from remote `last_cross_signed_state` are the same as `local_updates`/`remote_updates` from local `last_cross_signed_state`.
-
 * If local signature of remote `last_cross_signed_state` is valid but inverted `local_updates`/`remote_updates` numbers from remote `last_cross_signed_state` are higher than `local_updates`/`remote_updates` from local `last_cross_signed_state` then this means that local peer has fallen behind (or completely lost a state). Once this happens local peer must act as follows:
   * First, it must check if remote `last_cross_signed_state` points to one of future channel states which can be re-created locally. To enable this both peers store each local and remote `update_add_htlc`, `update_fulfill_htlc`, `update_fail_htlc`, `update_fail_malformed_htlc` message they send or receive in historic order until new `last_cross_signed_state` is reached. This vector of updates must be traversed with respected local `last_cross_signed_state` message created on each step and then compared against remote `last_cross_signed_state` update numbers. Once a match is found local peer applies it as current state, resolves all updates preceding this state and re-transmits all local updates following this state.
   * Second, if no matching future local `last_cross_signed_state` could be found then this means that local peer has completely lost it, in this case local peer should invert a remote `last_cross_signed_state` and apply it as its current state, then resolve all incoming HTLCs contained in remote `last_cross_signed_state`.
-
 * Local state signature is created by signing `sha256(refund_scriptpubkey + liability_deadline_blockdays + minimal_onchain_refund_amount_satoshis + channel_capacity_msat + initial_client_balance_msat + block_day + local_balance_msat + remote_balance_msat + local_updates + remote_updates + incoming_htlcs + outgoing_htlcs)` fields taken from local `update_fail_malformed_htlc` with respected `nodeId` private key.
 
 ## Normal operation
