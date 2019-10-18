@@ -70,7 +70,7 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 
 * This message is sent by Host in reply to `invoke_hosted_channel` if no hosted channel exists for a given Client yet.
 
-* `liability_deadline_blockdays` specifies a period in blockdays after last `state_update` exchange during which the Host is going to maintain a channel. That is, if there are no payments during `liability_deadline_blockdays` period then Host owes nothing to Client anymore.
+* `liability_deadline_blockdays` specifies a period in blockdays after last `state_update` exchange during which the Host is definitely going to maintain a channel. That is, if there are no payments during `liability_deadline_blockdays` period then Host owes nothing to Client anymore. For example: if last exchanged `state_update` had `blockday` set to 1000 and `liability_deadline_blockdays` is set to 2000, then Host may not maintain a channel after blockday 3000 if it was not used all this time.
 
 * `minimal_onchain_refund_amount_satoshis` specifies a minimal balance that Client must have in a hosted channel for a Host to consider refunding it on-chain using Client's `refund_scriptpubkey`.
 
@@ -119,7 +119,7 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
         +-------+                                           +-------+
 
         Where B is Host and A is Client
-
+        
 ### The `state_update` Message
 
 1. type: 65532 (`state_update`)
@@ -128,6 +128,14 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
   * [`u32`:`local_updates`]
   * [`u32`:`remote_updates`]
   * [`signature`:`local_sig_of_remote`]
+  
+### Rationale
+
+* Local `state_update` contains a _local_ signature of _remote_ view of next `last_cross_signed_state`. Signature is constructed as follows: generate a next local `last_cross_signed_state` with empty signature fields, then invert it (i.e. make a copy with `local_balance_msat` = `remote_balance_msat`, `local_updates` = `remote_updates` and so on), then sign its signature hash.
+
+* In normal channels each peer keeps track of `local_next_htlc_id`/`remote_next_htlc_id` counters which are increased by incoming and outgoing `update_add_htlc` only, in hosted channels each peer keeps track of `local_updates`/`remote_updates` counters which are updated by every incoming and outgoing update message (`update_add_htlc`, `update_fulfill_htlc`, `update_fail_htlc`, `update_fail_malformed_htlc`).
+
+* While verifying a signature a drift of 1 blockday is permitted i.e. `abs(local block_day - remote block_day) <= 1`.
 
 ## Failure and state overriding
 
@@ -163,8 +171,24 @@ Normal operation may be resumed after channel gets `SUSPENDED` by Host sending a
 
 ## Resolving edge cases
 
-When establishing a hosted channel Client and Host agree that:
+### Peer misses a channel or falls behind
 
-* The latest cross-signed state reflects Host's obligation to Client. Latest is the one having the highest `local_updates`/`remote_updates` combination since those values are only allowed to rise while `state_update` messages are exchanged.
+This situation is to be resolved in a standard way described in [`last_cross_signed_state` Rationale](https://github.com/btcontract/hosted-channels-rfc/blob/master/README.md#rationale-2).
 
-* Host's obligation only lasts for `liability_deadline_blockdays` specified in `init_hosted_channel` message. For example: if `last_cross_signed_state` had `blockday` set to 1000 and `liability_deadline_blockdays` is set to 2000, then Host may not maintain a channel after blockday 3000 if it was not used all this time.
+### Receiver stops responding while incoming payment is in-flight
+
+__Issue__: malicious or offline peer may accept `update_add_htlc` and a following `state_update` without ever replying. In this situation sender has a limited time to either fulfill a payment downstream (which would require obtaining a preimage from non-responding peer) or fail it, otherwise sender risks downstream channel getting remotely force-closed.
+
+__Solution__: similar to how this is handled in normal channels, right before CLTV timelock is about to expire a sender must put a hosted channel into `SUSPENDED` mode and fail a payment upstream. Hosted channel can be put back to operational mode at a later time by exchaning `state_override` messages where receiver balance is adjusted such that failed in-flight HTLC is removed.
+
+### Sender stops responding on obtaining a preimage
+
+__Issue__: on receiving `update_fulfill_htlc` sender may use a preimage to fulfill a payment upstream and stop responding to receiver. Sender would thus get the funds into its upstream channel while receiver won't have an updated `last_cross_signed_state` with payment resolved.
+
+__Solution__: the goal here is not to enforce payment receiving since this is impossible for hosted channels but to cryptographically prove that malicious behaviour has taken place on sender side. This is achieved in a following way:
+
+1. When sender transmits `update_add_htlc` to receiver and expects `update_fulfill_htlc` in return this can only mean that sender already has a committed in-flight payment upstream which can be unconditionally resolved once sender knows a preimage.
+
+2. After receiving `update_add_htlc` followed by `state_update` receiver has a new `last_cross_signed_state` where sender has signed an obligation to provide `X` funds to receiver if receiver reveals a preimage within next `Y` blocks (a CLTV expiry delta).
+
+3. When having this data along with preimage revealed (`update_fulfill_htlc` sent) a sender software must notify an owner if payment is not getting resolved within a reasonable time frame, but well before CLTV deadline (otherwise sender could claim receiver just was not cooperating so sender had to fail a payment on CLTV expiry). Sender is then expected to take action which can range from contacing receiver support to revealing a `last_cross_signed_state` along with preimage publically, thus giving sender no chance of denying that preimage is revealed.
