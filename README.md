@@ -192,3 +192,9 @@ __Solution__: the goal here is not to enforce payment receiving since this is im
 2. After receiving `update_add_htlc` followed by `state_update` receiver has a new `last_cross_signed_state` where sender has signed an obligation to provide `X` funds to receiver if receiver reveals a preimage within next `Y` blocks (a CLTV expiry delta).
 
 3. When having this data along with preimage revealed (`update_fulfill_htlc` sent) a sender software must notify an owner if payment is not getting resolved within a reasonable time frame, but well before CLTV deadline (otherwise sender could claim receiver just was not cooperating so sender had to fail a payment on CLTV expiry). Sender is then expected to take action which can range from contacing receiver support to revealing a `last_cross_signed_state` along with preimage publically, thus giving sender no chance of denying that preimage is revealed.
+
+### Host decides to refund a channel on-chain using Client's `refund_scriptpubkey`
+
+__Issue__: After doing that Client may show up with last `last_cross_signed_state` claiming that funds are still in a hosted channel.
+
+__Solution__: Host must wait at least 1 blockday until broadcasting an on-chain refunding transaction, in that case it will be included in a block whose `blockday` is higher than the one contained in Client's `last_cross_signed_state`. This will prove that refund has happened after any last known channel activity. After refunding this way hosted channel data may be safelly removed from Host database.
