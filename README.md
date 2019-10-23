@@ -109,14 +109,18 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 
 * First a peer sends `update_add_htlc`/`update_fulfill_htlc`/`update_fail_htlc`/`update_fail_malformed_htlc` messages which are then followed by local `state_update` message, which is then followed by remote `state_update`. Once both valid `state_update`s are collected a new cross-signed state is reached which in turn allows peers to resolve previous updates.
 
-        +-------+                                           +-------+
-        |       |----------- update_add_htlc #1 ----------->|       |
-        |       |----------- state_update ----------------->|       | // B has new local `last_cross_signed_state` #1, can start resolving #1
-        |       |<---------- state_update ------------------|       | // A has new local `last_cross_signed_state` #1
-        |   A   |<---------- update_fulfill_htlc #1 --------|   B   | 
-        |       |<---------- state_update ------------------|       | // A has new local `last_cross_signed_state` #2
-        |       |----------- state_update ----------------->|       | // B has new local `last_cross_signed_state` #2
-        +-------+                                           +-------+
+        +-------+                                            +-------+
+        |       |----------- update_add_htlc #1 ------------>|       |
+        |       |----------- state_update (is_terminal=0) -->|       | // A: here's my state update, now you have a new cross-signed state
+        |       |<---------- state_update (is_terminal=1) ---|       | // B: got your update, anything else incoming?
+        |       |----------- state_update (is_terminal=1) -->|       | // A: no other updates for now
+        |       |<---------- state_update (is_terminal=1) ---|       | // B: OK, resolving
+        |   A   |<---------- update_fulfill_htlc #1 ---------|   B   | 
+        |       |<---------- state_update (is_terminal=0) ---|       |
+        |       |----------- state_update (is_terminal=1) -->|       |
+        |       |<---------- state_update (is_terminal=1) ---|       |
+        |       |----------- state_update (is_terminal=1) -->|       |
+        +-------+                                            +-------+
 
         Where B is Host and A is Client
         
@@ -128,6 +132,7 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
   * [`u32`:`local_updates`]
   * [`u32`:`remote_updates`]
   * [`signature`:`local_sig_of_remote`]
+  * [`boolean`:`is_terminal`]
   
 ### Rationale
 
@@ -136,6 +141,8 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 * In normal channels each peer keeps track of `local_next_htlc_id`/`remote_next_htlc_id` counters which are increased by incoming and outgoing `update_add_htlc` only, in hosted channels each peer keeps track of `local_updates`/`remote_updates` counters which are updated by every incoming and outgoing update message (`update_add_htlc`, `update_fulfill_htlc`, `update_fail_htlc`, `update_fail_malformed_htlc`).
 
 * While verifying a signature a drift of 1 blockday is permitted i.e. `abs(local block_day - remote block_day) <= 1`.
+
+* `is_terminal` is a flag which must always be set to `0` after sending local `update_add_htlc`/`update_fulfill_htlc`/`update_fail_htlc`/`update_fail_malformed_htlc` messages and always be set to `1` when replying to remote `state_update`. By using this convention peers can determine if remote peer is sending more updates or this is it for now and resolving should be started.
 
 ## Failure and state overriding
 
