@@ -130,7 +130,7 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
         | 1, 0  |----------> update_add_htlc #A1                    | 0, 0  |
         | 1, 0  |----------> state_update #A1 (is_terminal=0)       | 0, 0  | // A inverts local state and signs B's `0, 1`, by not making it terminal A instructs B to not resolve an HTLC even if signature is correct but send an acking `state_update` in return
         | 1, 0  |            update_add_htlc #B1 <------------------| 1, 0  |
-        | 1, 0  |            state_update #B1 (is_terminal=0) <-----| 1, 0  | // B inverts local state and signs B's `0, 1`, by not making it terminal B instructs A to not resolve an HTLC even if signature is correct but send an acking `state_update` in return
+        | 1, 0  |            state_update #B1 (is_terminal=0) <-----| 1, 0  | // B inverts local state and signs A's `0, 1`, by not making it terminal B instructs A to not resolve an HTLC even if signature is correct but send an acking `state_update` in return
         | 1, 0  |                                                   | 1, 0  |
         | 1, 0  |            update_add_htlc #A1 ------------------>| 1, 1  |
         | 1, 0  |            state_update #A1 (is_terminal=0) ----->| 1, 1  | // A's `state_update` signs B's `1, 0` state, but B has `1, 1` by the time it arrives
