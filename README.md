@@ -124,6 +124,29 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 
         Where B is Host and A is Client
         
+        A more involved case with entwined updates, a diagram takes into account that it takes time for messages to get through, but message order is always preserved
+
+        +-------+                                                   +-------+
+        | 1, 0  |----------> update_add_htlc #A1                    | 0, 0  |
+        | 1, 0  |----------> state_update #A1 (is_terminal=0)       | 0, 0  | // A inverts local state and signs B's `0, 1`, by not making it terminal A instructs B to not resolve an HTLC even if signature is correct but send an acking `state_update` in return
+        | 1, 0  |            update_add_htlc #B1 <------------------| 1, 0  |
+        | 1, 0  |            state_update #B1 (is_terminal=0) <-----| 1, 0  | // B inverts local state and signs B's `0, 1`, by not making it terminal B instructs A to not resolve an HTLC even if signature is correct but send an acking `state_update` in return
+        | 1, 0  |                                                   | 1, 0  |
+        | 1, 0  |            update_add_htlc #A1 ------------------>| 1, 1  |
+        | 1, 0  |            state_update #A1 (is_terminal=0) ----->| 1, 1  | // A's `state_update` signs B's `1, 0` state, but B has `1, 1` by the time it arrives
+        | 1, 1  |<---------- update_add_htlc #B1                    | 1, 1  |
+        | 1, 1  |<---------- state_update #B1 (is_terminal=0)       | 1, 1  | // B's `state_update` signs A's `1, 0` state, but A has `1, 1` by the time it arrives
+        | 1, 1  |            state_update #B2 (is_terminal=1) <-----| 1, 1  | // B replies with a new `state_update` which signs `1, 1` this time
+        | 1, 1  |----------> state_update #A2 (is_terminal=1)       | 1, 1  | // A replies with a new `state_update` which signs `1, 1` this time
+        | 1, 1  |<---------- state_update #B2 (is_terminal=1)       | 1, 1  | // B gets a new `state_update` which correctly signs `1, 1` and is terminal, B starts resolving A's HTLC
+        | 1, 1  |            state_update #A2 (is_terminal=1) ----->| 1, 1  | // A gets a new `state_update` which correctly signs `1, 1` and is terminal, A starts resolving B's HTLC
+        |       |                                                   |       |
+        |   A   |                                                   |   B   |
+        |       |                                                   |       |
+        +-------+                                                   +-------+
+
+        Where B is Host and A is Client
+        
 ### The `state_update` Message
 
 1. type: 65532 (`state_update`)
