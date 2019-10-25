@@ -138,8 +138,8 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
         | 1, 1  |<---------- state_update #B1 (is_terminal=0)       | 1, 1  | // B's `state_update` signs A's `1, 0` state, but A has `1, 1` by the time it arrives
         | 1, 1  |            state_update #B2 (is_terminal=1) <-----| 1, 1  | // B replies with a new `state_update` which signs `1, 1` this time
         | 1, 1  |----------> state_update #A2 (is_terminal=1)       | 1, 1  | // A replies with a new `state_update` which signs `1, 1` this time
-        | 1, 1  |<---------- state_update #B2 (is_terminal=1)       | 1, 1  | // B gets a new `state_update` which correctly signs `1, 1` and is terminal, B starts resolving A's HTLC
-        | 1, 1  |            state_update #A2 (is_terminal=1) ----->| 1, 1  | // A gets a new `state_update` which correctly signs `1, 1` and is terminal, A starts resolving B's HTLC
+        | 1, 1  |<---------- state_update #B2 (is_terminal=1)       | 1, 1  | // A gets a new `state_update` which correctly signs `1, 1` and is terminal, B starts resolving A's HTLC
+        | 1, 1  |            state_update #A2 (is_terminal=1) ----->| 1, 1  | // B gets a new `state_update` which correctly signs `1, 1` and is terminal, A starts resolving B's HTLC
         |       |                                                   |       |
         |   A   |                                                   |   B   |
         |       |                                                   |       |
