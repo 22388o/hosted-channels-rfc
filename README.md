@@ -177,7 +177,7 @@ Normal channel operation may be interrupted in a number of ways (incorrect state
 `0004`: CLTV delay in `channel_update` is too low.  
 `0005`: Too many `state_update` messages without reaching of new local `last_cross_signed_state` (more than 16 in a row).  
 `0006`: Timed out outgoing HTLC.  
-`0007`: Remote peer has lost all channels and can't resolve in-flight HTLCs.  
+`0007`: Remote peer has lost all upstream channels and can't resolve in-flight routed HTLCs.  
 `0008`: Hosted channel denied by Host when Client was trying to invoke it.  
 
 Normal operation may be resumed after channel gets `SUSPENDED` by Host sending a `state_override` message to Client which would erase all previous problematic state and set a new agreed upon balance breakdown. Client must manually accept this message which would send a `state_update` in return. Client's wallet UI/UX must be especially explicit about what is going on in this situation.
