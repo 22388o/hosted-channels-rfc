@@ -56,7 +56,7 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 
 ### The `init_hosted_channel` Message
 
-1. type: 65534 (`init_hosted_channel`)
+1. type: 65533 (`init_hosted_channel`)
 2. data:
   * [`u64`:`max_htlc_value_in_flight_msat`]
   * [`u64`:`htlc_minimum_msat`]
@@ -76,7 +76,7 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 
 ### The `last_cross_signed_state` Message
 
-1. type: 65533 (`last_cross_signed_state`)
+1. type: 65531 (`last_cross_signed_state`)
 2. data:
   * [`u16`:`len`]
   * [`len*byte`:`last_refund_scriptpubkey`]
@@ -149,7 +149,7 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
         
 ### The `state_update` Message
 
-1. type: 65532 (`state_update`)
+1. type: 65529 (`state_update`)
 2. data:
   * [`u32`:`block_day`]
   * [`u32`:`local_updates`]
@@ -191,7 +191,7 @@ Normal operation may be resumed after channel gets `SUSPENDED` by Host sending a
 
 ### The `state_override` Message
 
-1. type: 65531 (`state_override`)
+1. type: 65527 (`state_override`)
 2. data:
   * [`u32`:`block_day`]
   * [`u64`:`local_balance_msat`]
