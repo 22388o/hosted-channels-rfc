@@ -201,7 +201,7 @@ Normal operation may be resumed after channel gets `SUSPENDED` by Host sending a
   
 ## Data format for channel state snapshot
 
-When resolving disputes after a channel got `SUSPENDED` it may be necessary for a Client to manually provide a channel state snapshot which contains last cross signed state along with subsequent updates from both peers, those may include `update_fail_htlc` messages with preimages which can be used by Host to manually fulfill outstanding HTLCs but must not contain any other types of secrets.
+When resolving disputes after a channel got `SUSPENDED` it may be necessary for a Client to manually provide a channel state snapshot which contains last cross signed state along with subsequent updates from both peers, those may include `update_fulfill_htlc` messages with preimages which can be used by Host to manually fulfill outstanding HTLCs but must not contain any other types of secrets.
 
 ### The `hosted_state` Message
 
