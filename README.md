@@ -198,6 +198,21 @@ Normal operation may be resumed after channel gets `SUSPENDED` by Host sending a
   * [`u32`:`local_updates`]
   * [`u32`:`remote_updates`]
   * [`signature`:`local_sig_of_remote`]
+  
+## Data format for channel state snapshot
+
+When resolving disputes after a channel got `SUSPENDED` it may be necessary for a Client to manually provide a channel state snapshot which contains last cross signed state along with subsequent updates from both peers, those may include `update_fail_htlc` messages with preimages which can be used by Host to manually fulfill outstanding HTLCs but must not contain any other types of secrets.
+
+### The `hosted_state` Message
+
+1. data:
+  * [`channel_id`:`channel_id`]
+  * [`u16`:`num_next_local_updates`]
+  * [`num_next_local_updates`*[`update_add_htlc`/`update_fulfill_htlc`/`update_fail_htlc`/`update_fail_malformed_htlc`]:`next_local_updates`]
+  * [`u16`:`num_next_remote_updates`]
+  * [`num_next_remote_updates`*[`update_add_htlc`/`update_fulfill_htlc`/`update_fail_htlc`/`update_fail_malformed_htlc`]:`next_remote_updates`]
+  * [`last_cross_signed_state`:`last_cross_signed_state`]
+  
 
 ## Resolving edge cases
 
