@@ -174,7 +174,6 @@ Normal channel operation may be interrupted in a number of ways (incorrect state
 `0001`: Wrong blockday in a remote message.  
 `0002`: Wrong local signature from remote message.  
 `0003`: Wrong remote signature from remote message.  
-`0004`: CLTV delay in `channel_update` is too low.  
 `0005`: Too many `state_update` messages without reaching of new local `last_cross_signed_state` (more than 16 in a row).  
 `0006`: Timed out outgoing HTLC.  
 `0007`: Remote peer has lost all upstream channels and can't resolve in-flight routed HTLCs.  
@@ -236,7 +235,7 @@ __Solution__: the goal here is not to enforce payment receiving since this is im
 
 2. After receiving `update_add_htlc` followed by `state_update` receiver has a new `last_cross_signed_state` where sender has signed an obligation to provide `X` funds to receiver if receiver reveals a preimage within next `Y` blocks (a CLTV expiry delta).
 
-3. When having this data along with preimage revealed (`update_fulfill_htlc` sent) a sender software must notify an owner if payment is not getting resolved within a reasonable time frame, but well before CLTV deadline (otherwise sender could claim receiver just was not cooperating so sender had to fail a payment on CLTV expiry). Sender is then expected to take action which can range from contacing receiver support to revealing a `last_cross_signed_state` along with preimage publically, thus giving sender no chance of denying that active in-flight HTLC exists and respected preimage is revealed.
+3. When having this data along with preimage revealed (`update_fulfill_htlc` sent) a sender software must notify an owner if payment is not getting resolved within a reasonable time frame, but well before CLTV deadline (otherwise sender could claim receiver just was not cooperating so sender had to fail a payment on CLTV expiry). Sender is then expected to take action which can range from contacing receiver support to revealing a `last_cross_signed_state` along with preimage publically, thus giving sender no chance of denying that active in-flight HTLC exists and respected preimage is revealed. Note that for this to work a final CLTV window set by receiver software should be large enough, at least 288 blocks is recommended.
 
 ### Host decides to refund a channel on-chain using Client's `refund_scriptpubkey`
 
