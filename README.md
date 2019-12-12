@@ -65,6 +65,8 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
   * [`u16`:`liability_deadline_blockdays`]
   * [`u64`:`minimal_onchain_refund_amount_satoshis`]
   * [`u64`:`initial_client_balance_msat`]
+  * [`u16`:`len`]
+  * [`len*byte`:`features`]
 
 #### Rationale
 
@@ -73,6 +75,8 @@ This proposes a new type of channel which has no on-chain funding but otherwise 
 * `liability_deadline_blockdays` specifies a period in blockdays after last `state_update` exchange during which the Host is definitely going to maintain a channel. That is, if there are no payments during `liability_deadline_blockdays` period then Host owes nothing to Client anymore. For example: if last exchanged `state_update` had `blockday` set to 1000 and `liability_deadline_blockdays` is set to 2000, then Host may not maintain a channel after blockday 3000 if it was not used all this time.
 
 * `minimal_onchain_refund_amount_satoshis` specifies a minimal balance that Client must have in a hosted channel for a Host to consider refunding it on-chain using Client's `refund_scriptpubkey`.
+
+* `features` here work similarly to node `features` field in [`Init`](https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#the-init-message) message. While establishing a new hosted channel a node must drop it if unknown even features are present.
 
 ### The `last_cross_signed_state` Message
 
